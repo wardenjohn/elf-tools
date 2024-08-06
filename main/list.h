@@ -80,4 +80,31 @@ static inline void __list_add(struct list_head *new,
         &pos->member != (head); 					\
 	     pos = n, n = list_entry(n->member.next, typeof(*n), member))
 
+/**
+ * list_add_tail - add a new entry
+ * @new: new entry to be added
+ * @head: list head to add it before
+ *
+ * Insert a new entry before the specified head.
+ * This is useful for implementing queues.
+ */
+static inline void list_add_tail(struct list_head *new, struct list_head *head)
+{
+	__list_add(new, head->prev, head);
+}
+
+/**
+ * alloc a new node to the given list
+*/
+#define ALLOC_LINK(_new, _list) \
+{ \
+	(_new) = malloc(sizeof(*(_new))); \
+	if (!(_new)) \
+		ERROR("malloc"); \
+	memset((_new), 0, sizeof(*(_new))); \
+	INIT_LIST_HEAD(&(_new)->list); \
+	if (_list) \
+		list_add_tail(&(_new)->list, (_list)); \
+}
+
 #endif

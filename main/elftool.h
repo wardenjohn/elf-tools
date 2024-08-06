@@ -28,10 +28,17 @@ struct symbol {
  * To describe a section in elf, it should be 
  * shown as a list node.
  *
- *
+ * @list: list node of a section
+ * @shdr: section header of this section
+ * @data: data of this section
+ * @name: the name of this section
  */
 struct section{
     struct list_head list;
+    GElf_Shdr shdr;
+    Elf_Data *data;
+    char *name; 
+    unsigned int index;
 };
 
 /*
