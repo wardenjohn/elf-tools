@@ -15,6 +15,8 @@
 
 static char args_doc[] = "target.o";
 
+extern int get_sections(struct ELFT *elf_tool);
+
 static void print_elf_machine_type(size_t type)
 {
 	switch (type)
@@ -36,62 +38,6 @@ static void print_elf_machine_type(size_t type)
 	}
 }
 
-int get_sections(struct ELFT *elf_tool)
-{
-	int section_num;
-	size_t shstrndx, sections_nr;
-	Elf_Scn *scn = NULL; // used to get each section
-	struct section *sec;
-
-	if (elf_getshdrnum(elf_tool->elf, &elf_tool->sec_nr))
-		ERROR("get elf section header number failed\n");
-		
-	section_num = elf_tool->sec_nr;
-
-	// becase index of elf_tool->sec_nr count in section with section 0
-	// but elf_nextscn will not return this section.
-	section_num--;
-
-	/**
-	 * shstrndx is the index of the section header string table of elf file
-	*/
-	if (elf_getshdrstrndx(elf_tool->elf, &shstrndx))
-		ERROR("elf_getshdrstrndx");
-
-	for (int i=0; i< section_num; i++){
-		ALLOC_LINK(sec, &elf_tool->sections); // alloc a section node to sections list
-
-		scn = elf_nextscn(elf_tool->elf, scn); // get the next section of elf
-
-		if (!scn)
-			ERROR("Get scn failed");
-
-		// return this section's section header
-		if (!gelf_getshdr(scn, &sec->shdr))
-			ERROR("Get section header failed");
-
-		/* sh_name is the index into section header string table
-		 * shstrndx is the index to section header string table
-		 * here we got the name index and the section header string table
-		 * can return the string of the section name
-		 */
-		sec->name = elf_strptr(elf_tool->elf, shstrndx, sec->shdr.sh_name);
-		if (!sec->name)
-			ERROR("section name !");
-		
-		sec->data = elf_getdata(scn, NULL);
-
-		if (!sec->data)
-			ERROR("elf_getdata");
-		
-		sec->index = (unsigned int)elf_ndxscn(scn);
-
-		if (sec->shdr.sh_type == SHT_SYMTAB_SHNDX)
-			elf_tool->symtab_shndx = sec->data;
-
-	}
-}
-	
 static void get_object_arch(struct ELFT *elf_tool)
 {
 	int type = elf_tool->ehdr.e_machine;
@@ -145,18 +91,62 @@ static void elf_open(struct ELFT *elf_tool, char *elf_path)
 }
 
 void usage() {
+	printf("ELF-TOOL USAGE:\n");
+	printf("elf-tool <origin_elf_file> <output_elf_file> <command> <sub-command>\n");
+	printf("Commands: \n");
+	printf("	help\n");
+	printf("		sections\n");
+	printf("		symtab\n");
+	printf("		elfheader\n");
+}
 
+void print_subcommand(char *subcommand) {
+
+	printf("elf-tool <origin_elf_file> <output_elf_file> <command> <sub-command>\n");
+	printf("Commands: \n");
+	if (!strcmp(subcommand, "sections")) {
+		printf("	sections \n");
+		printf("		--show-all-sections \"show all sections of this elf file\"\n");
+		printf("		--show-sections-by-name \"show sections filter by the given name\"\n");
+	}
+	if (!strcmp(subcommand, "symtab")) {
+		printf("	symtab\n");
+		printf("		--show \"show this elf file's symbol table\" \n");
+	}
+	if (!strcmp(subcommand, "elfheader")) {
+		printf("	elfheader\n");
+		printf("		--change-vermagic\n");
+		printf("		--show-elfheader\n");
+		printf("\n");
+	}
 }
 
 int main(int argc, char *argv[])
 {
-	const char *elf_path = argv[1];
+	const char *origin_elf_file_path = argv[1];
+	const char *output_elf_file_path = argv[2];
+	const char *command = argv[3];
+	const char *subcommand = argv[4];
 	struct ELFT *elf_tool;
 	int fd;
 	size_t sec_nr;
+
+	if (argc < 4) {
+		usage();
+		return -1;
+	}
+
+	if(access(origin_elf_file_path, F_OK)) {
+		printf("file %s is not exist, please check\n", origin_elf_file_path);
+		return -1;
+	}
+
+	if(!strcmp(command, "help")){
+		print_subcommand(subcommand);
+	}
 		
 	elf_tool = malloc(sizeof(struct ELFT));
-	elf_open(elf_tool, elf_path);
+	elf_open(elf_tool, origin_elf_file_path);
 
 	printf("%d", elf_tool->arch);
 }
