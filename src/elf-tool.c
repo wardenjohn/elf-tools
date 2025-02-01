@@ -13,7 +13,7 @@
 #include "elftool_err.h"
 #include "list.h"
 
-static char args_doc[] = "target.o";
+//static char args_doc[] = "target.o";
 
 extern int get_sections(struct ELFT *elf_tool);
 
@@ -62,6 +62,19 @@ static void get_object_arch(struct ELFT *elf_tool)
 	}
 }
 
+static void show_ehdr(struct ELFT *elf_tool)
+{
+	int i;
+	printf("==========================\n");
+	printf("  Elf Header Information\n");
+	printf("==========================\n");
+	printf("%d***\n", EI_NIDENT);
+	
+	for (i=0; i < EI_NIDENT; i++){
+		printf(elf_tool->ehdr.e_ident[i]);
+	}
+}
+
 static void elf_open(struct ELFT *elf_tool, char *elf_path)
 {
 	int fd;
@@ -90,7 +103,8 @@ static void elf_open(struct ELFT *elf_tool, char *elf_path)
 	get_sections(elf_tool);
 }
 
-void usage() {
+void usage() 
+{
 	printf("ELF-TOOL USAGE:\n");
 	printf("elf-tool <origin_elf_file> <output_elf_file> <command> <sub-command>\n");
 	printf("Commands: \n");
@@ -100,9 +114,10 @@ void usage() {
 	printf("		elfheader\n");
 }
 
-void print_subcommand(char *subcommand) {
+void print_subcommand(char *subcommand) 
+{
 
-	printf("elf-tool <origin_elf_file> <output_elf_file> <command> <sub-command>\n");
+	printf("elf-tool <command> <sub-command> <origin_elf_file> <output_elf_file(if provided)> \n");
 	printf("Commands: \n");
 	if (!strcmp(subcommand, "sections")) {
 		printf("	sections \n");
@@ -112,28 +127,40 @@ void print_subcommand(char *subcommand) {
 	if (!strcmp(subcommand, "symtab")) {
 		printf("	symtab\n");
 		printf("		--show \"show this elf file's symbol table\" \n");
+		printf("		--show-symbols \"show this elf file's symbols\"");
 	}
 	if (!strcmp(subcommand, "elfheader")) {
 		printf("	elfheader\n");
 		printf("		--change-vermagic\n");
 		printf("		--show-elfheader\n");
+		printf("		--show-elf-machinetype");
 		printf("\n");
 	}
 }
 
 int main(int argc, char *argv[])
 {
-	const char *origin_elf_file_path = argv[1];
-	const char *output_elf_file_path = argv[2];
-	const char *command = argv[3];
-	const char *subcommand = argv[4];
+	const char *command = argv[1];
+	const char *subcommand = argv[2];
+	const char *origin_elf_file_path = argv[3];
+	char *output_elf_file_path;
 	struct ELFT *elf_tool;
 	int fd;
 	size_t sec_nr;
 
-	if (argc < 4) {
+	if (argc <= 3) {
 		usage();
 		return -1;
+    }
+
+	if (argc >=4 ) {
+		output_elf_file_path = argv[4];
+	}
+
+	if (!strcmp(origin_elf_file_path, "help") ||
+		!strcmp(origin_elf_file_path, "h")) {
+		usage();
+		return 0;
 	}
 
 	if(access(origin_elf_file_path, F_OK)) {
@@ -148,5 +175,23 @@ int main(int argc, char *argv[])
 	elf_tool = malloc(sizeof(struct ELFT));
 	elf_open(elf_tool, origin_elf_file_path);
 
-	printf("%d", elf_tool->arch);
+	if (!strcmp(command, "elfheader")){
+		if (!strcmp(subcommand, "--show-elfheader")){
+			printf("showling elfheader of object file: %s\n", origin_elf_file_path);
+			show_ehdr(elf_tool);
+		}
+		if (!strcmp(subcommand, "--show-elf-machinetype")) {
+			print_elf_machine_type(1);
+		}		
+	} else if (!strcmp(command, "symtab")) {
+		printf("calling symtab\n");
+		print_helloworl();
+	} else if (!strcmp(command, "sections")) {
+		printf("calling sections");
+	} else {
+		printf("not support command\n");
+		return -1;
+	}
+
+	return 0;
 }

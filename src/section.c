@@ -70,3 +70,7 @@ int get_sections(struct ELFT *elf_tool)
 	}
 }
 	
+static void show_all_section_names(struct ELFT *elf_tool)
+{
+	
+}
