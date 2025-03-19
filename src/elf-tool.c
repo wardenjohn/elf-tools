@@ -22,18 +22,18 @@ static void print_elf_machine_type(size_t type)
 	switch (type)
 	{
 		case EM_X86_64:
-			PRINT_NEWLINE("x86_64");
+			printf("Arch: x86_64\n");
 			break;
 		case EM_IA_64:
-			PRINT_NEWLINE("IA_64");
+			printf("Arch: IA_64\n");
 			break;
 		case EM_ARM:
-			PRINT_NEWLINE("ARM");
+			printf("Arch: ARM\n");
 			break;
 		case EM_AARCH64:
-			PRINT_NEWLINE("AARCH64");
+			printf("Arch: AARCH64\n");
 		default:
-			PRINT_NEWLINE("NOT INCLUDED ARCH");
+			printf("Arch: NOT INCLUDED ARCH\n");
 			break;
 	}
 }
@@ -68,11 +68,22 @@ static void show_ehdr(struct ELFT *elf_tool)
 	printf("==========================\n");
 	printf("  Elf Header Information\n");
 	printf("==========================\n");
-	printf("%d***\n", EI_NIDENT);
-	
+	print_elf_machine_type(elf_tool->ehdr.e_machine);
+	printf("ELF Version: %d\n", elf_tool->ehdr.e_version);
+	printf("ELF Entry point virtual address: %lx\n", elf_tool->ehdr.e_entry);
+	printf("ELF Header size (bytes): %d\n", elf_tool->ehdr.e_ehsize);
+	printf("ELF Program header table file offset: %lx\n", elf_tool->ehdr.e_phoff);
+	printf("ELF Program header table entry size: %d\n", elf_tool->ehdr.e_phentsize);
+	printf("ELF Program header table entry count: %d\n", elf_tool->ehdr.e_phnum);
+	printf("ELF Section header table file offset: %lx\n", elf_tool->ehdr.e_shoff);
+	printf("ELF Section header table entry size: %d\n", elf_tool->ehdr.e_shentsize);
+	printf("ELF Section header table entry count: %d\n", elf_tool->ehdr.e_shnum);
+	printf("ELF Section header string table index: %d\n", elf_tool->ehdr.e_shstrndx);
+	printf("ELF e_ident character (combines into one line): ");
 	for (i=0; i < EI_NIDENT; i++){
-		printf(elf_tool->ehdr.e_ident[i]);
+		printf("%c", elf_tool->ehdr.e_ident[i]);
 	}
+	printf("\n");
 }
 
 static void elf_open(struct ELFT *elf_tool, char *elf_path)
@@ -103,10 +114,14 @@ static void elf_open(struct ELFT *elf_tool, char *elf_path)
 	get_sections(elf_tool);
 }
 
+static void write_result_elf_output(struct ELFT *elf_tool, char *elf_output_path) {
+
+}
+
 void usage() 
 {
 	printf("ELF-TOOL USAGE:\n");
-	printf("elf-tool <origin_elf_file> <output_elf_file> <command> <sub-command>\n");
+	printf("elf-tool <command> <sub-command> <origin_elf_file> <output_elf_file(if provided)> \n");
 	printf("Commands: \n");
 	printf("	help\n");
 	printf("		sections\n");
@@ -131,30 +146,33 @@ void print_subcommand(char *subcommand)
 	}
 	if (!strcmp(subcommand, "elfheader")) {
 		printf("	elfheader\n");
-		printf("		--change-vermagic\n");
+		printf("		--change-vermagic <new vermagic>\n");
 		printf("		--show-elfheader\n");
-		printf("		--show-elf-machinetype");
 		printf("\n");
 	}
 }
 
 int main(int argc, char *argv[])
 {
-	const char *command = argv[1];
-	const char *subcommand = argv[2];
-	const char *origin_elf_file_path = argv[3];
-	char *output_elf_file_path;
+	const char *command = argv[COMMAND_PARAMS_POS];
+	const char *subcommand = argv[SUBCOMMAND_PARAMS_POS];
+	const char *origin_elf_file_path = argv[ORIGINAL_OBJECT_FILE_PARAMS_POS];
+	char *output_elf_file_path = NULL;
+	char *new_vermagic = NULL;
 	struct ELFT *elf_tool;
-	int fd;
-	size_t sec_nr;
 
 	if (argc <= 3) {
 		usage();
 		return -1;
     }
-
-	if (argc >=4 ) {
-		output_elf_file_path = argv[4];
+	
+	if (argc >= 5) {
+		if (OUTPUT_OBJECT_FILE_PARAMS_POS >= argc) {
+            fprintf(stderr, "Error: Missing output ELF file path.\n");
+            usage();
+            return -1;
+        }
+		output_elf_file_path = argv[OUTPUT_OBJECT_FILE_PARAMS_POS];
 	}
 
 	if (!strcmp(origin_elf_file_path, "help") ||
@@ -174,15 +192,22 @@ int main(int argc, char *argv[])
 		
 	elf_tool = malloc(sizeof(struct ELFT));
 	elf_open(elf_tool, origin_elf_file_path);
-
+	
 	if (!strcmp(command, "elfheader")){
-		if (!strcmp(subcommand, "--show-elfheader")){
+		if (!strcmp(subcommand, "--show-elfheader")) {
 			printf("showling elfheader of object file: %s\n", origin_elf_file_path);
 			show_ehdr(elf_tool);
+		}	
+		if (!strcmp(subcommand, "--change-vermagic")) {
+			if (argc < 6) {
+				fprintf(stderr, "vermagic is not provided");
+				usage();
+				return -1;
+			}
+			new_vermagic = argv[VERMAGIC_PARAMS_POS];
+			printf("Start to change the vermagic to %s\n", new_vermagic);
+			change_vermagic(elf_tool, new_vermagic);
 		}
-		if (!strcmp(subcommand, "--show-elf-machinetype")) {
-			print_elf_machine_type(1);
-		}		
 	} else if (!strcmp(command, "symtab")) {
 		printf("calling symtab\n");
 		print_helloworl();

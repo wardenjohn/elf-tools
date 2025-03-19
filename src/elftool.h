@@ -1,9 +1,20 @@
 #ifndef _ELFTOOL_H_
 #define _ELFTOOL_H_
-
+// For more information
+// Please read /usr/include/libelf.h or /usr/include/elf.h
 #include <gelf.h>
 #include <stdbool.h>
+#include <linux/module.h>
 #include "list.h"
+
+/*
+ * Define the argv pos for each parameters
+ */
+#define COMMAND_PARAMS_POS 1
+#define SUBCOMMAND_PARAMS_POS 2
+#define ORIGINAL_OBJECT_FILE_PARAMS_POS 3
+#define OUTPUT_OBJECT_FILE_PARAMS_POS 4
+#define VERMAGIC_PARAMS_POS 5
 
 enum architecture {
      PPC64  = 0x1 << 0,
@@ -49,44 +60,6 @@ struct string {
     struct list_head list;
     char *name;
 };
-
-/*
- * ELF Header -- 32bit
- */
-typedef struct {
-    unsigned char   e_ident[EI_NIDENT]; // elf magic
-    Elf32_Half      e_type;             // elf type
-    Elf32_Half      e_machine;          // elf machine
-    Elf32_Word      e_version;          // elf version
-    Elf32_Addr      e_entry;            // elf head entry address
-    Elf32_Off       e_phoff;            // elf program header offset
-    Elf32_Off       e_shoff;            // elf section header offset
-    Elf32_Word      e_flag;             // elf 
-    Elf32_Half      e_ehsize;           // elf entry size
-    Elf32_Half      e_phentsize;        // entry size of each program ent
-    Elf32_Half      e_shentsize;        // entry size of each section header ent
-    Elf32_Half      e_shnum;            // number of section header
-    Elf32_Half      e_shstrndx;         // index of section os section header string table
-}Elf32_EHDR;
-
-/*
- * ELF Header -- 64bit
- */
-typedef struct {
-    unsigned char   e_ident[EI_NIDENT];
-    Elf64_Half      e_type;
-    Elf64_Half      e_machine;
-    Elf64_Word      e_version;
-    Elf64_Addr      e_entry;
-    Elf64_Off       e_phoff;
-    Elf64_Off       e_shoff;
-    Elf64_Half      e_flag;
-    Elf64_Half      e_ehsize;
-    Elf64_Half      e_phentsize;
-    Elf64_Half      e_shentsize;
-    Elf64_Half      e_shnum;
-    Elf64_Half      e_shstrndx;
-} Elf64_EHDR;
 
 
 struct ELFT{
